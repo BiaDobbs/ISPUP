@@ -1,0 +1,522 @@
+<!DOCTYPE html>
+<html lang="pt-PT">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Linha do Tempo - 1000 Dias</title>
+    <link rel="stylesheet" href="https://use.typekit.net/vzj1juw.css" />
+    <style>
+        :root {
+            --bg: #0500ea;
+            --ink: #ffffff;
+            --muted: rgba(255, 255, 255, 0.9);
+            --past: #f3c95a;
+            --future: #ff6bd8;
+            --marker: #f3c95a;
+            --shadow: 0 24px 50px rgba(0, 0, 0, 0.18);
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            margin: 0;
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: var(--bg);
+            color: var(--ink);
+            font-family: "neue-haas-grotesk-text", "Segoe UI", sans-serif;
+        }
+
+        body {
+            overscroll-behavior: none;
+        }
+
+        h1,
+        p {
+            margin: 0;
+        }
+
+        h1 {
+            font-family: "neue-haas-grotesk-display", sans-serif;
+            font-size: clamp(3rem, 5vw, 4.8rem);
+            line-height: 0.95;
+            text-transform: uppercase;
+            letter-spacing: -0.03em;
+        }
+
+        .page {
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden;
+            background: var(--bg);
+        }
+
+        .hero {
+            width: min(1100px, calc(100vw - 40px));
+            margin: 0 auto;
+            padding-top: 36px;
+            text-align: center;
+        }
+
+        .hero__text {
+            margin: 26px auto 0;
+            max-width: 1060px;
+            font-family: "neue-haas-grotesk-display", sans-serif;
+            font-size: clamp(1rem, 1.3vw, 1.15rem);
+            line-height: 1.08;
+            color: var(--muted);
+        }
+
+        .timeline {
+            position: relative;
+            width: 100vw;
+            height: calc(100vh - 220px);
+            margin-top: 15px;
+        }
+
+        .timeline__viewport {
+            width: 100%;
+            height: 100%;
+            overflow-x: auto;
+            overflow-y: hidden;
+            scrollbar-width: thin;
+            scrollbar-color: rgba(255, 255, 255, 0.38) transparent;
+            outline: none;
+        }
+
+        .timeline__viewport::-webkit-scrollbar {
+            height: 10px;
+        }
+
+        .timeline__viewport::-webkit-scrollbar-track {
+            background: transparent;
+        }
+
+        .timeline__viewport::-webkit-scrollbar-thumb {
+            background: rgba(255, 255, 255, 0.38);
+            border-radius: 999px;
+        }
+
+        .timeline__track {
+            position: relative;
+            width: calc(100vw * 24);
+            min-height: 100%;
+            display: block;
+        }
+
+        .step {
+            position: absolute;
+            top: 0;
+            width: 100vw;
+            height: 100%;
+            display: grid;
+            align-content: start;
+            justify-items: center;
+            padding: 0 20px;
+            transform: translateX(-50%);
+            /* centra o step na sua posição */
+        }
+
+        .step__meta {
+            width: min(760px, calc(100vw - 56px));
+            margin-top: calc(50vh - 140px);
+            display: flex;
+            justify-content: center;
+        }
+
+        .step__subtitle {
+            font-family: "neue-haas-grotesk-display", sans-serif;
+            font-size: clamp(1.35rem, 2.2vw, 2.1rem);
+            font-weight: 700;
+            line-height: 1;
+            margin-top: 0;
+            text-align: center;
+        }
+
+        .step__copy {
+            margin-top: 28px;
+            width: min(980px, calc(100vw - 56px));
+            text-align: center;
+            font-family: "neue-haas-grotesk-display", sans-serif;
+            font-size: clamp(1rem, 1.5vw, 1.4rem);
+            line-height: 1.1;
+            color: var(--ink);
+        }
+
+        .timeline__marker {
+            position: absolute;
+            left: var(--marker-left, 0px);
+            top: 50%;
+            transform: translate(-50%, -50%);
+            width: clamp(78px, 9vw, 86px);
+            aspect-ratio: 1;
+            border-radius: 50%;
+            background: var(--marker);
+            color: #32281c;
+            display: grid;
+            place-items: center;
+            font-family: "neue-haas-grotesk-display", sans-serif;
+            font-size: clamp(0.95rem, 1.2vw, 1rem);
+            font-weight: 700;
+            box-shadow: var(--shadow);
+            pointer-events: none;
+            z-index: 2;
+        }
+
+        .timeline__hint {
+            position: absolute;
+            left: 50%;
+            bottom: 14px;
+            transform: translateX(-50%);
+            font-size: clamp(0.9rem, 1.2vw, 1.2rem);
+            color: rgba(255, 255, 255, 0.96);
+            pointer-events: none;
+            white-space: nowrap;
+        }
+
+        .timeline__bar {
+            position: absolute;
+            left: 48px;
+            right: 48px;
+            width: auto;
+            top: 30%;
+            height: 18px;
+            transform: translateY(-50%);
+            background: linear-gradient(90deg, var(--past) 0 var(--split, 0px), var(--future) var(--split, 0px) 100%);
+            pointer-events: none;
+        }
+
+        .timeline__marker--global {
+            z-index: 3;
+        }
+
+        @media (max-width: 900px) {
+            .hero {
+                padding-top: 24px;
+            }
+
+            .timeline {
+                height: calc(100vh - 200px);
+                margin-top: 4px;
+            }
+        }
+
+        .timeline__phase {
+            position: absolute;
+            left: 50%;
+            top: calc(50% - 198px);
+            transform: translateX(-50%);
+            font-family: "neue-haas-grotesk-display", sans-serif;
+            font-size: clamp(1.75rem, 1vw, 1.9rem);
+            font-weight: 700;
+            letter-spacing: 0.12em;
+            text-transform: uppercase;
+            color: #f3c95a;
+            pointer-events: none;
+            white-space: nowrap;
+            z-index: 4;
+        }
+
+        .timeline__milestone {
+            position: absolute;
+            left: var(--pos);
+            top: 80%;
+            transform: translate(-50%, -50%);
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 8px;
+            pointer-events: none;
+            font-size: clamp(0.75rem, 0.9vw, 0.95rem);
+        }
+
+        .timeline__milestone::before {
+            content: "";
+            display: block;
+            width: 4px;
+            height: 20px;
+            background: rgba(255, 255, 255, 0.6);
+        }
+
+        .step__aside {
+            position: absolute;
+            left: calc(55%);
+            top: calc(51vh);
+
+            width: 260px;
+
+            font-family: "neue-haas-grotesk-display", sans-serif;
+            font-size: 0.9rem;
+            line-height: 1.2;
+            text-align: left;
+        }
+
+        .step__aside::before {
+            content: "";
+            position: absolute;
+
+            left: -25%;
+            top: 25%;
+
+            width: 50px;
+            height: 1px;
+
+            background: white;
+
+            transform: rotate(25deg);
+            transform-origin: right center;
+        }
+    </style>
+</head>
+
+<body>
+    <main class="page">
+        <header class="hero">
+            <h1>OS PRIMEIROS 1000 DIAS</h1>
+            <p class="hero__text">
+                A investigação no âmbito da Geração XXI vai de encontro à evidência científica que sustenta que a saúde
+                começa a moldar-se mesmo antes do nascimento. Os primeiros mil dias de vida - entre os cerca de 270 dias
+                de gestação e os primeiros 730 dias de um bebé - são determinantes para o crescimento, a saúde óssea, a
+                programação metabólica e a incidência de doenças futuras, como a obesidade. Tudo o que acontece nesta
+                fase da vida estabelece as bases para a saúde física, mental e emocional ao longo de toda a vida adulta.
+            </p>
+        </header>
+
+        <section class="timeline" id="timeline">
+            <div class="timeline__phase" id="timeline-phase">Gestação</div>
+            <div class="timeline__viewport" id="timeline-viewport" tabindex="0">
+                <div class="timeline__track" id="timeline-track">
+
+                    <article class="step is-active" data-day="0">
+                        <div class="step__meta">
+                            <div class="step__subtitle">antes do início da gravidez</div>
+                        </div>
+                        <p class="step__copy">o peso materno antes do início da gravidez acarreta um maior risco para a
+                            saúde da mãe e da criança do que o peso que a mulher ganha durante a gestação</p>
+                    </article>
+
+                    <article class="step" data-day="100">
+                        <div class="step__meta">
+
+                            <div class="step__subtitle">o ambiente</div>
+                        </div>
+                        <p class="step__copy">a exposição a níveis mais elevados de humidade e temperatura durante a
+                            gravidez pode influenciar as variações da pressão arterial da criança ao longo da infância
+                        </p>
+                    </article>
+
+                    <article class="step" data-day="150">
+                        <div class="step__meta">
+
+                            <div class="step__subtitle">fumar</div>
+                        </div>
+                        <p class="step__copy">o consumo de tabaco está associado a um maior risco de excesso de peso,
+                            obesidade e de problemas respiratórios na criança
+                            .</p>
+                    </article>
+
+                    <article class="step" data-day="200">
+                        <div class="step__meta">
+
+                            <div class="step__subtitle">beber</div>
+                        </div>
+                        <p class="step__copy">o consumo de álcool afeta o funcionamento dos rins da criança (mais
+                            negativamente quanto maior for o consumo) que é agravado se desenvolverem excesso de peso ao
+                            longo da infância</p>
+                    </article>
+
+                    <article class="step" data-day="270">
+                        <div class="step__meta">
+
+                            <div class="step__subtitle"> nascimento</div>
+                        </div>
+                    </article>
+
+                    <article class="step" data-day="350">
+                        <div class="step__meta">
+
+                            <div class="step__subtitle">a menos...</div>
+                        </div>
+                        <p class="step__copy">o peso abaixo do expectável ao nascimento está associado a mais
+                            dificuldades alimentares na infância</p>
+                    </article>
+
+                    <article class="step" data-day="400">
+                        <div class="step__meta">
+
+                            <div class="step__subtitle">... e a mais</div>
+                        </div>
+                        <p class="step__copy">O peso elevado ao nascimento está associado a alterações da composição
+                            corporal, excesso de peso e obesidade durante a infância, o que resulta em maior risco
+                            cardiovascular</p>
+                    </article>
+
+                    <article class="step" data-day="450">
+                        <div class="step__meta">
+
+                            <div class="step__subtitle">amamentação</div>
+                        </div>
+                        <p class="step__copy">as filhas de mães que amamentaram têm tendência a entrar mais tarde na
+                            puberdade, prevenindo riscos de desenvolvimento de diabetes tipo 2, doenças cardiovasculares
+                            e alguns tipos de cancro associados à puberdade precoce</p>
+
+                        <div class="step__aside">
+                           A Organização Mundial da Saúde (OMS) recomenda o aleitamento materno exclusivo até aos 6 meses de idade e a sua manutenção, juntamente com alimentos complementares, até aos 2 anos ou mais </div>
+                    </article>
+
+                    <article class="step" data-day="635">
+                        <div class="step__meta">
+
+                            <div class="step__subtitle">primeiros passos</div>
+                        </div>
+                        <p class="step__copy">o crescimento desde o nascimento (principalmente por volta do primeiro ano
+                            de vida, quando as crianças começam a andar) influencia os padrões de postura durante a
+                            infância e a incidência de dor lombar na vida adulta</p>
+                    </article>
+
+                    <article class="step" data-day="750">
+                        <div class="step__meta">
+
+                            <div class="step__subtitle">ossos fortes</div>
+                        </div>
+                        <p class="step__copy">o padrão de crescimento nos primeiros três anos de vida é particularmente
+                            importante para a qualidade óssea durante a infância
+                        </p>
+                    </article>
+
+                    <article class="step" data-day="850">
+                        <div class="step__meta">
+
+                            <div class="step__subtitle">novos apetites</div>
+                        </div>
+                        <p class="step__copy">reduzir o tempo de aleitamento materno, introduzir novos alimentos mais
+                            tarde do que o recomendado e habituar os bebés a comida muito calórica mas pobre em
+                            nutrientes prejudica a qualidade da alimentação na idade pré-escolar e acaba por ter um
+                            impacto visível aos 10 anos de idade, traduzindo-se num aumento da gordura corporal, numa
+                            maior resistência à insulina — o que dificulta o controlo do açúcar no sangue — e até numa
+                            menor capacidade cognitiva, afetando a aprendizagem e a memória.
+                        </p>
+                    </article>
+
+                    <article class="step" data-day="950">
+                        <div class="step__meta">
+
+                            <div class="step__subtitle">crescimento desigual</div>
+                        </div>
+                        <p class="step__copy">as desigualdades sociais das famílias comprometem desde cedo o
+                            desenvolvimento, crescimento e saúde das crianças; um maior investimento nos primeiros anos
+                            de vida parece ser primordial para promover maior equidade em saúde
+                        </p>
+                    </article>
+
+                </div>
+            </div>
+
+            <p class="timeline__hint"> ← Deslize para navegar →</p>
+            <div class="timeline__bar" id="timeline-bar" aria-hidden="true">
+                <div class="timeline__marker timeline__marker--global" id="timeline-marker">Dia 0</div>
+                <div class="timeline__milestone" style="--pos: 27%">Nascimento</div>
+                <div class="timeline__milestone" style="--pos: 45%">6 meses</div>
+                <div class="timeline__milestone" style="--pos: 64%">1 ano</div>
+                <div class="timeline__milestone" style="--pos: 100%">2 anos</div>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        const viewport = document.getElementById("timeline-viewport");
+        const track = document.getElementById("timeline-track");
+        const bar = document.getElementById("timeline-bar");
+        const marker = document.getElementById("timeline-marker");
+        const steps = Array.from(document.querySelectorAll(".step"));
+        const phaseEl = document.getElementById("timeline-phase");
+
+        function getPhase(day) {
+            if (day <= 268) {
+                const month = Math.max(1, Math.ceil(day / 30));
+                return `Gestação`;
+            } else if (day <= 275) {
+                return "Nascimento";
+            }
+            const monthOfLife = Math.min(24, Math.ceil((day - 270) / 30.4));
+            return ` ${monthOfLife}º mês`;
+        }
+
+        const STEP_STOPS = [0, 0.10, 0.15, 0.20, 0.27, 0.30, 0.35, 0.45, 0.64, 0.75, 0.85, 0.95];
+
+        const clamp = (v, lo, hi) => Math.min(Math.max(v, lo), hi);
+
+        let maxShift = 0;
+
+        function measure() {
+            maxShift = Math.max(0, track.scrollWidth - viewport.clientWidth);
+        }
+        function positionSteps() {
+            steps.forEach((step, i) => {
+                const pct = STEP_STOPS[i];
+                const scrollAtStop = pct * maxShift;
+                const centerOnScreen = scrollAtStop + viewport.clientWidth / 2;
+                step.style.left = `${centerOnScreen}px`;
+            });
+        }
+
+        function getActiveIndex(p) {
+            let idx = 0, best = Infinity;
+            STEP_STOPS.forEach((s, i) => {
+                const d = Math.abs(p - s);
+                if (d < best) { best = d; idx = i; }
+            });
+            return idx;
+        }
+
+        function update(p) {
+            p = clamp(p, 0, 1);
+            const day = Math.round(p * 1000);
+            const barWidth = viewport.clientWidth - 96;
+
+            marker.textContent = `Dia ${day}`;
+            phaseEl.textContent = getPhase(day);
+            marker.style.setProperty("--marker-left", `${p * barWidth}px`);  // relativo à barra
+            bar.style.setProperty("--split", `${p * barWidth}px`);
+
+            const ai = getActiveIndex(p);
+            steps.forEach((s, i) => s.classList.toggle("is-active", i === ai));
+        }
+
+        function onScroll() {
+            const p = maxShift > 0 ? clamp(viewport.scrollLeft / maxShift, 0, 1) : 0;
+            update(p);
+        }
+
+        viewport.addEventListener("scroll", onScroll, { passive: true });
+
+        viewport.addEventListener("wheel", (e) => {
+            if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                e.preventDefault();
+                viewport.scrollLeft += e.deltaY;
+            }
+        }, { passive: false });
+
+        window.addEventListener("resize", () => { measure(); onScroll(); });
+
+        if ("scrollRestoration" in history) history.scrollRestoration = "manual";
+
+        measure();
+        positionSteps();
+        viewport.scrollLeft = 0;
+        update(0);
+
+        window.addEventListener("resize", () => {
+            measure();
+            positionSteps();
+            onScroll();
+        });
+    </script>
+</body>
+
+</html>
