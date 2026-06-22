@@ -173,7 +173,7 @@
         .step__icon {
             width: 100%;
             height: auto;
-            max-height: 150px;
+            max-height: 56px;
             justify-self: center;
             pointer-events: none;
             user-select: none;
@@ -199,8 +199,23 @@
             font-size: clamp(0.95rem, 1.2vw, 1rem);
             font-weight: 700;
             box-shadow: var(--shadow);
-            pointer-events: none;
             z-index: 2;
+            touch-action: none;
+        }
+
+        /* Bolinha como scrubber arrastável */
+        .timeline__marker--global {
+            pointer-events: auto;
+            cursor: grab;
+        }
+
+        .timeline__marker--global:active,
+        .timeline__marker--global.is-dragging {
+            cursor: grabbing;
+        }
+
+        .timeline__marker--global.is-dragging {
+            box-shadow: 0 28px 60px rgba(0, 0, 0, 0.30);
         }
 
         /* ── Faixa do hint + setas discretas de safeguard ── */
@@ -260,7 +275,7 @@
             height: 18px;
             transform: translateY(-50%);
             background: linear-gradient(90deg, var(--past) 0 var(--split, 0px), var(--future) var(--split, 0px) 100%);
-            pointer-events: none;
+            pointer-events: none; /* a barra não recebe clique, só serve de referência geométrica para o drag da bolinha */
         }
 
         .timeline__marker--global { z-index: 3; }
@@ -716,6 +731,45 @@
 
         hintPrev.addEventListener("click", () => goToStep(activeIndex - 1));
         hintNext.addEventListener("click", () => goToStep(activeIndex + 1));
+
+        /* ── Bolinha arrastável (scrubber) ──
+           Arrastar a bolinha move a timeline na mesma direção do gesto,
+           evitando a confusão de arrastar a página "ao contrário". */
+        let isDragging = false;
+
+        function setScrollFromClientX(clientX) {
+            const barRect = bar.getBoundingClientRect();
+            const barWidth = barRect.width; // mesma largura usada em update(): viewport.clientWidth - 96
+            const p = clamp((clientX - barRect.left) / barWidth, 0, 1);
+            viewport.scrollLeft = p * maxShift;
+        }
+
+        function onMarkerPointerDown(e) {
+            isDragging = true;
+            marker.classList.add("is-dragging");
+            marker.setPointerCapture(e.pointerId);
+            setScrollFromClientX(e.clientX);
+            e.preventDefault();
+        }
+
+        function onMarkerPointerMove(e) {
+            if (!isDragging) return;
+            setScrollFromClientX(e.clientX);
+        }
+
+        function onMarkerPointerUp(e) {
+            if (!isDragging) return;
+            isDragging = false;
+            marker.classList.remove("is-dragging");
+            if (marker.hasPointerCapture(e.pointerId)) {
+                marker.releasePointerCapture(e.pointerId);
+            }
+        }
+
+        marker.addEventListener("pointerdown", onMarkerPointerDown);
+        marker.addEventListener("pointermove", onMarkerPointerMove);
+        marker.addEventListener("pointerup", onMarkerPointerUp);
+        marker.addEventListener("pointercancel", onMarkerPointerUp);
 
         viewport.addEventListener("scroll", onScroll, { passive: true });
 
